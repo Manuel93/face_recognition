@@ -521,11 +521,14 @@ class FaceRecognition(object):
 
         for count,face_encoding in enumerate(self.known_face_encodings):
 
-            if True: #"Unknown" in self.known_face_names[count]:
+            if "Unknown" not in self.known_face_names[count]:
+                continue
 
-                known = [True for face_cluster in faces if self.known_face_names[count] in face_cluster ]
-                if True in known:
-                    continue
+            else:
+
+                #known = [True for face_cluster in faces if self.known_face_names[count] in face_cluster ]
+                #if True in known:
+                #    continue
 
                 # See if the face is a match for the known face(s)
                 matches = fr.compare_faces(self.known_face_encodings[count+1:], face_encoding)
