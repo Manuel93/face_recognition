@@ -17,6 +17,8 @@ import numpy as np
 
 from collections import Counter
 
+import string
+
 class FileManagement(object):
 
     def get_file_list(self,path):
@@ -176,17 +178,17 @@ class Application(Frame):
                 self.person_name.set("")
                 self.status.set("Click 'Next'")
                 break"""
-        for i in range(len(self.faces)):
-            """if "Unknown" in self.faces[i][0] and self.person_name.get()=="":
-                self.status.set("Please type in the name of " + self.faces[i][0] + " and click 'Next'")
+        for i in range(len(self.face_names)):
+            """if "Unknown" in self.face_names[i][0] and self.person_name.get()=="":
+                self.status.set("Please type in the name of " + self.face_names[i][0] + " and click 'Next'")
                 break"""
-            if "Unknown" in self.faces[i][0]:
+            if "Unknown" in self.face_names[i][0]:
 
 
                 """if i > 0:
-                    for k,face in enumerate(self.faces[i-1]):
-                        self.face_rcg.change_face_name(self.faces[i-1][k],self.person_name.get())
-                        self.faces[i-1][k] = self.person_name.get()
+                    for k,face in enumerate(self.face_names[i-1]):
+                        self.face_rcg.change_face_name(self.face_names[i-1][k],self.person_name.get())
+                        self.face_names[i-1][k] = self.person_name.get()
                 
                 self.person_name.set("")"""
 
@@ -195,18 +197,18 @@ class Application(Frame):
 
                 """size = (1000, 1000)
                 try:
-                    self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.faces[i][0])])
+                    self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])])
                     self.im.thumbnail(size, Image.ANTIALIAS)
                     self.iterator += 1
                 except IOError:
-                    print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.faces[i][0])]))
+                    print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])]))
             
                 self.img2 = ImageTk.PhotoImage(self.im) 
 
                 self.canvas.configure(image=self.img2)
                 self.canvas.image = self.img2"""
 
-                img_full = cv2.imread(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.faces[i][0])]) #, cv2.IMREAD_UNCHANGED)
+                img_full = cv2.imread(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])]) #, cv2.IMREAD_UNCHANGED)
                 scale_percent = 1000/img_full.shape[1] # percent of original size
                 width = int(img_full.shape[1] * scale_percent )
                 height = int(img_full.shape[0] * scale_percent )
@@ -215,7 +217,7 @@ class Application(Frame):
                 img_bgr = cv2.resize(img_full, dim)
 
 
-                (top, right, bottom, left) = self.face_rcg.get_known_face_locations()[self.face_rcg.get_known_face_names().index(self.faces[i][0])]
+                (top, right, bottom, left) = self.face_rcg.get_known_face_locations()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])]
 
                 # Draw a box around the face
                 cv2.rectangle(img_bgr, (left, top), (right, bottom), (255, 255, 255), 2)
@@ -223,7 +225,7 @@ class Application(Frame):
                 # Draw a label with a name below the face
                 cv2.rectangle(img_bgr, (left, bottom), (right+150, bottom+35), (255, 255, 255), cv2.FILLED)
                 font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(img_bgr, self.faces[i][0], (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)
+                cv2.putText(img_bgr, self.face_names[i][0], (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)
 
                 # change color channel
                 b,g,r = cv2.split(img_bgr)
@@ -236,15 +238,15 @@ class Application(Frame):
                 self.canvas.image = imgtk
 
 
-                self.status.set("Please type in the name of " + self.faces[i][0] + " and click 'Save' and 'Next'")
+                self.status.set("Please type in the name of " + self.face_names[i][0] + " and click 'Save' and 'Next'")
                 break
             else:
                 # face is already known. Change the name 'Unknown......' to the real name
-                names = [face for face in self.faces[i] if "Unknown" not in face]
+                names = [face for face in self.face_names[i] if "Unknown" not in face]
                 names = sorted(names, key=names.count,reverse=True)
-                for k,face in enumerate(self.faces[i]):
-                    self.face_rcg.change_face_name(self.faces[i][k],names[0])
-                    self.faces[i][k] = names[0]
+                for k,face in enumerate(self.face_names[i]):
+                    self.face_rcg.change_face_name(self.face_ids[i][k],names[0])
+                    self.face_names[i][k] = names[0]
 
         else:
 
@@ -267,7 +269,9 @@ class Application(Frame):
 
                 self.face_rcg.encode([file[1] for file in self.file_list])
 
-                self.faces = self.face_rcg.recognize_unknowns()
+                self.face_clusters = self.face_rcg.cluster_faces()
+                self.face_names = [cluster[2] for cluster in self.face_clusters]
+                self.face_ids = [cluster[0] for cluster in self.face_clusters]
 
                 self.status.set("Faces recognized. Click 'Next'")
 
@@ -281,11 +285,11 @@ class Application(Frame):
             # show image with faces
             """size = (1000, 1000)
             try:
-                self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.faces[0][0])])
+                self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[0][0])])
                 self.im.thumbnail(size, Image.ANTIALIAS)
                 self.iterator += 1
             except IOError:
-                print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.faces[0][0])]))
+                print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[0][0])]))
         
             self.img2 = ImageTk.PhotoImage(self.im) 
 
@@ -312,15 +316,15 @@ class Application(Frame):
         self.canvas.image = self.img2"""
 
     def save(self):
-        for i in range(len(self.faces)):
-            """if "Unknown" in self.faces[i][0] and self.person_name.get()=="":
-                self.status.set("Please type in the name of " + self.faces[i][0] + " and click 'Next'")
+        for i in range(len(self.face_names)):
+            """if "Unknown" in self.face_names[i][0] and self.person_name.get()=="":
+                self.status.set("Please type in the name of " + self.face_names[i][0] + " and click 'Next'")
                 break"""
-            if "Unknown" in self.faces[i][0]:
+            if "Unknown" in self.face_names[i][0]:
 
-                for k,face in enumerate(self.faces[i]):
-                    self.face_rcg.change_face_name(self.faces[i][k],self.person_name.get())
-                    self.faces[i][k] = self.person_name.get()
+                for k,face in enumerate(self.face_names[i]):
+                    self.face_rcg.change_face_name(self.face_ids[i][k],self.person_name.get())
+                    self.face_names[i][k] = self.person_name.get()
                 
                 self.person_name.set("")
 
@@ -406,7 +410,8 @@ class Application(Frame):
         self.master = master
         self.iterator = 0
         self.face_names = []
-        self.faces = []
+        self.face_ids = []
+        self.face_clusters = []
         self.file_path = ""
         self.new_file_list = False
         self.file_mgmt = FileManagement()
@@ -417,6 +422,9 @@ class Application(Frame):
 
 
 class FaceRecognition(object):
+
+    def id_generator(self,size=12, chars=string.ascii_letters + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
 
     def encode(self,paths):
         """Encode all images 
@@ -434,6 +442,7 @@ class FaceRecognition(object):
             face_locations = []
             face_encodings = []
             face_names = []
+            face_ids = []
 
 
             img_full = cv2.imread(path) #, cv2.IMREAD_UNCHANGED)
@@ -475,11 +484,15 @@ class FaceRecognition(object):
                 #    name = "Unknown_" + str(round(random.random()*1000000000000000)) 
 
                 name = "Unknown_" + str(round(random.random()*1000000000000000)) 
+                face_id = self.id_generator()
 
                 face_names.append(name)
+                face_ids.append(face_id)
 
             self.known_face_encodings.extend(face_encodings)
             self.known_face_names.extend(face_names)
+            self.known_face_ids.extend(face_ids)
+            self.face_labelled.extend([False for i in range(len(face_ids))])
             self.known_face_locations.extend(face_locations)
             self.known_face_files.extend([path for i in range(len(face_names))])
 
@@ -507,8 +520,70 @@ class FaceRecognition(object):
         return face_names, file_path"""
         return 
 
-    def recognize_unknowns(self):
-        """Loops through all face encodings with unknown names and returns clusters of unknown same faces
+    def build_cluster(self,ids,encodings,names,labelled):
+        """Recursive function to build clusters of same faces
+
+        Parameters:
+        array ids: ids of faces
+        array encodings: encodings of faces
+        array names: names of faces 
+        array labelled: boolean if face is already labelled
+
+        Returns:
+        array: recognized cluster
+
+        """
+
+        # See if the face is a match for the known face(s)
+        matches = fr.compare_faces(encodings[1:], encodings[0])
+        face_ids_cluster = []
+        face_encodings_cluster = []
+        face_names_cluster = []
+        labelled_cluster = []
+        face_ids_unclustered = []
+        face_encodings_unclustered = []
+        face_names_unclustered = []
+        labelled_unclustered = []
+
+        clusters = []
+
+        if True in matches:
+            # find the indexes of all matched faces 
+            matchedIdxs = [1+i for (i, b) in enumerate(matches) if b]
+
+            face_ids_cluster.append(ids[0])
+            face_ids_cluster.extend([ids[i] for i in matchedIdxs])
+            face_ids_unclustered.extend([ids[i] for i in range(1,len(ids)) if i not in matchedIdxs])
+            face_names_cluster.append(names[0])
+            face_names_cluster.extend([names[i] for i in matchedIdxs])
+            face_names_unclustered.extend([names[i] for i in range(1,len(names)) if i not in matchedIdxs])
+            labelled_cluster.append(labelled[0])
+            labelled_cluster.extend([labelled[i] for i in matchedIdxs])
+            labelled_unclustered.extend([labelled[i] for i in range(1,len(labelled)) if i not in matchedIdxs])
+            face_encodings_cluster.append(encodings[0])
+            face_encodings_cluster.extend([encodings[i] for i in matchedIdxs])
+            face_encodings_unclustered.extend([encodings[i] for i in range(1,len(encodings)) if i not in matchedIdxs])
+        else:
+            face_ids_cluster.append(ids[0])
+            face_ids_unclustered.extend([ids[i] for i in range(1,len(ids))])
+            face_names_cluster.append(names[0])
+            face_names_unclustered.extend([names[i] for i in range(1,len(names))])
+            labelled_cluster.append(labelled[0])
+            labelled_unclustered.extend([labelled[i] for i in range(1,len(labelled))])
+            face_encodings_cluster.append(encodings[0])
+            face_encodings_unclustered.extend([encodings[i] for i in range(1,len(encodings))])
+
+        clusters.append([face_ids_cluster,face_encodings_cluster,face_names_cluster,labelled_cluster])
+
+        if len(face_encodings_unclustered) > 1:
+            clusters.extend(self.build_cluster(face_ids_unclustered,face_encodings_unclustered,face_names_unclustered,labelled_unclustered))
+        elif len(face_encodings_unclustered) == 1:
+            clusters.append([face_ids_unclustered,face_encodings_unclustered,face_names_unclustered,labelled_unclustered])
+
+        return clusters
+
+    def cluster_faces(self):
+        """Loops through all face encodings and returns clusters of unknown same faces
 
         Parameters:
         
@@ -517,9 +592,18 @@ class FaceRecognition(object):
 
         """
 
+        clusters = []
         faces = []
 
-        for count,face_encoding in enumerate(self.known_face_encodings):
+        face_encodings = self.known_face_encodings.copy()
+        face_names = self.known_face_names.copy()
+        face_ids = self.known_face_ids.copy()
+        labelled = self.face_labelled.copy()
+
+        clusters = self.build_cluster(face_ids,face_encodings,face_names,labelled)
+
+
+        """for count,face_encoding in enumerate(self.known_face_encodings):
 
             if "Unknown" not in self.known_face_names[count]:
                 continue
@@ -550,9 +634,28 @@ class FaceRecognition(object):
                 #    name = self.known_face_names[best_match_index]
                 #else:
                 #    name = "Unknown_" + str(round(random.random()*1000000000000000)) 
+        """
 
- 
-        return faces
+        return clusters
+
+    def get_unknowns(self,clusters):
+        """Get unlabelled faces of the clustered faces
+
+        Parameters:
+        array clusters: clusters of known and unknown faces
+
+        Returns: 
+        array ids: ids of unknown faces 
+
+        """
+
+        unlabelled_faces = []
+
+        clusters_labelled = [cluster[3] for cluster in clusters]
+        clusters_ids = [cluster[0] for cluster in clusters]
+
+     
+
 
     def write_images_with_names(self,write_path):
         """Write all known images
@@ -569,6 +672,7 @@ class FaceRecognition(object):
         face_locations = self.known_face_locations
         face_encodings = self.known_face_encodings
         face_names = self.known_face_names
+        face_ids = self.known_face_ids
 
         for i,path in enumerate(paths):
 
@@ -619,15 +723,18 @@ class FaceRecognition(object):
         with open(path, "w") as write_file:
             json.dump(data, write_file)
 
-    def change_face_name(self,old_face_name,new_face_name):
+    def change_face_name(self,face_id,new_face_name):
         print(self.known_face_names)
-        self.known_face_names = [new_face_name if x==old_face_name else x for x in self.known_face_names]
+        #self.known_face_names = [new_face_name if value==face_id else self.known_face_names[count] for count,value in enumerate(self.known_face_ids)]
+        idx = self.known_face_ids.index(face_id)
+        self.known_face_names[idx] = new_face_name
+        self.face_labelled[idx] = True
         print(self.known_face_names)
 
     def write_known_faces_to_json(self,path):
         print(self.known_face_names)
         data_faces = dict()
-        data_faces["faces"] = [{"name_person":self.known_face_names[i],"face_location":self.known_face_locations[i],"face_file":self.known_face_files[i],"face_encoding":self.known_face_encodings[i].tolist()} for i in range(len(self.known_face_encodings))]
+        data_faces["faces"] = [{"face_id":self.known_face_ids[i],"name_person":self.known_face_names[i],"labelled":self.face_labelled[i],"face_location":self.known_face_locations[i],"face_file":self.known_face_files[i],"face_encoding":self.known_face_encodings[i].tolist()} for i in range(len(self.known_face_encodings))]
         self.write_json_file(path,data_faces)
 
     def read_known_faces_from_json_file(self,path):
@@ -635,17 +742,21 @@ class FaceRecognition(object):
         with open(path, "r") as read_file:
             data = json.load(read_file)
 
+            face_ids = [file["face_id"] for file in data["faces"]]
             face_names = [file["name_person"] for file in data["faces"]]
+            face_labelled = [file["labelled"] for file in data["faces"]]
             face_encodings = [np.array(file["face_encoding"]) for file in data["faces"]]
             face_locations = [file["face_location"] for file in data["faces"]]
             face_files = [file["face_file"] for file in data["faces"]]
 
+        self.known_face_ids = face_ids
         self.known_face_encodings = face_encodings
         self.known_face_names = face_names
+        self.face_labelled = face_labelled
         self.known_face_locations = face_locations
         self.known_face_files = face_files
 
-        return face_names,face_encodings,face_locations,face_files
+        return face_ids,face_names,face_labelled,face_encodings,face_locations,face_files
 
     def get_known_face_names(self):
         return self.known_face_names
@@ -657,10 +768,12 @@ class FaceRecognition(object):
         return self.known_face_locations
 
     def __init__(self):
-        self.known_face_encodings = []
-        self.known_face_names = []
+        self.known_face_encodings = [] # Encodings of all recognized faces
+        self.known_face_names = [] # Given face names for all recognized faces
+        self.known_face_ids = [] # IDs of all recognized faces
         self.known_face_locations = []
         self.known_face_files = []
+        self.face_labelled = [] # True if face was manually labelled, else False
 
 
 
