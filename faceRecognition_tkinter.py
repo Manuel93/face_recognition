@@ -208,8 +208,11 @@ class Application(Frame):
                 self.canvas.configure(image=self.img2)
                 self.canvas.image = self.img2"""
 
+                display_size_image = 600
+                display_scale_image = display_size_image / 2000
+
                 img_full = cv2.imread(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_ids().index(self.face_ids[i][0])]) #, cv2.IMREAD_UNCHANGED)
-                scale_percent = 1000/img_full.shape[1] # percent of original size
+                scale_percent = display_scale_image*2000/img_full.shape[1] # percent of original size
                 width = int(img_full.shape[1] * scale_percent )
                 height = int(img_full.shape[0] * scale_percent )
                 dim = (width, height)
@@ -219,13 +222,18 @@ class Application(Frame):
 
                 (top, right, bottom, left) = self.face_rcg.get_known_face_locations()[self.face_rcg.get_known_face_ids().index(self.face_ids[i][0])]
 
+                top = int(display_scale_image*top)
+                right = int(display_scale_image*right)
+                bottom = int(display_scale_image*bottom)
+                left = int(display_scale_image*left)
+
                 # Draw a box around the face
                 cv2.rectangle(img_bgr, (left, top), (right, bottom), (255, 255, 255), 2)
 
                 # Draw a label with a name below the face
-                cv2.rectangle(img_bgr, (left, bottom), (right+150, bottom+35), (255, 255, 255), cv2.FILLED)
+                cv2.rectangle(img_bgr, (left, bottom), (right+120, bottom+30), (255, 255, 255), cv2.FILLED)
                 font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(img_bgr, self.face_ids[i][0], (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)
+                cv2.putText(img_bgr, self.face_ids[i][0], (left + 6, bottom + 25), font, 0.6, (0, 0, 0), 2)
 
                 # change color channel
                 b,g,r = cv2.split(img_bgr)
@@ -356,9 +364,9 @@ class Application(Frame):
 
         fontStyle = tkFont.Font(size=12)
 
-        self.im = Image.new('RGB', (1000, 1000),(255,255,255))
+        self.im = Image.new('RGB', (600, 600),(255,255,255))
         self.img = ImageTk.PhotoImage(self.im) 
-        self.canvas = Label(image=self.img, width = 1000, height = 1000)
+        self.canvas = Label(image=self.img, width = 600, height = 600)
         self.canvas.grid(row=2,column=2, columnspan = 2, rowspan = 20, padx = 5, pady = 5)
 
         # pfad images modell
@@ -452,7 +460,7 @@ class FaceRecognition(object):
             #small_frame = cv2.resize(img,(0,0),fx=0.25, fy=0.25)
             #rgb_small_frame = small_frame[:, :, ::-1]
 
-            scale_percent = 1000/img_full.shape[1] # percent of original size
+            scale_percent = 2000/img_full.shape[1] # percent of original size
             width = int(img_full.shape[1] * scale_percent )
             height = int(img_full.shape[0] * scale_percent )
             dim = (width, height)
@@ -538,7 +546,7 @@ class FaceRecognition(object):
         """
 
         # See if the face is a match for the known face(s)
-        matches = fr.compare_faces(encodings[1:], encodings[0],tolerance=0.5)
+        matches = fr.compare_faces(encodings[1:], encodings[0],tolerance=0.58)
         face_ids_cluster = []
         face_encodings_cluster = []
         face_names_cluster = []
@@ -664,13 +672,27 @@ class FaceRecognition(object):
                 # first sort clusters after number of occurences
                 #cluster_ids_sorted = [cluster_id for cluster_id in face_cluster_id[i] if cluster_id]
                 #cluster_ids_sorted = sorted(cluster_ids_sorted, key=cluster_ids_sorted.count,reverse=True)
-                cluster_ids_sorted = [cluster[3] for cluster in clusters if cluster[3]]
-                cluster_names_sorted = [cluster[2] for cluster in clusters if cluster[3]]
-                cluster_ids_sorted = sorted(cluster_ids_sorted, key=cluster_ids_sorted.count,reverse=True)
-                cluster_names_sorted = sorted(cluster_names_sorted, key=cluster_ids_sorted.count,reverse=True)
+
+                #cluster_ids_sorted = [cluster[3] for cluster in clusters if cluster[3]]
+                #cluster_names_sorted = [cluster[2] for cluster in clusters if cluster[3]]
+                #cluster_ids_sorted = sorted(cluster_ids_sorted, key=cluster_ids_sorted.count,reverse=True)
+                #cluster_names_sorted = sorted(cluster_names_sorted, key=cluster_ids_sorted.count,reverse=True)
+
+                cluster_ids_sorted = [cluster_id for cluster_id in face_cluster_id[i] if cluster_id]
+                cluster_names_sorted = [name for name in face_names[i] if name]
+                cluster_ids_sorted = sorted(cluster_ids_sorted, key=face_cluster_id[i].count,reverse=True)
+                cluster_names_sorted = sorted(cluster_names_sorted, key=face_cluster_id[i].count,reverse=True)
+
                 # then assign the new faces the most common cluster
                 face_cluster_id[i] = [cluster_ids_sorted[0] for i in range(len(face_cluster_id_cache))]
                 face_names[i] = [cluster_names_sorted[0] for i in range(len(face_cluster_id_cache))]
+
+                # change names and cluster IDs of already known faces
+                for k in range(len(face_ids[i])):
+                    idx = self.known_face_ids.index(face_ids[i][k])
+                    self.change_face_name(face_ids[i][k],face_names[i][0])
+                    self.change_face_cluster_id(face_ids[i][k],face_cluster_id[i][0])
+                
 
             elif "" in face_cluster_id_cache:
                 # cluster is not known -> generate cluster id and assign it
@@ -678,6 +700,7 @@ class FaceRecognition(object):
                 face_cluster_id[i] = [new_cluster_id for i in range(len(face_cluster_id_cache))]
                 self.cluster_ids.append(new_cluster_id)
                 self.cluster_names.append("")
+
 
         return face_ids,face_names,face_cluster_id
 
@@ -705,7 +728,7 @@ class FaceRecognition(object):
             #small_frame = cv2.resize(img,(0,0),fx=0.25, fy=0.25)
             #rgb_small_frame = small_frame[:, :, ::-1]
 
-            scale_percent = 1000/img_full.shape[1] # percent of original size
+            scale_percent = 2000/img_full.shape[1] # percent of original size
             width = int(img_full.shape[1] * scale_percent )
             height = int(img_full.shape[0] * scale_percent )
             dim = (width, height)
@@ -788,7 +811,7 @@ class FaceRecognition(object):
         self.known_face_locations = face_locations
         self.known_face_files = face_files
 
-        return face_ids,face_names,face_labelled,face_encodings,face_locations,face_files
+        return face_ids,face_names,face_cluster_id,face_encodings,face_locations,face_files
 
     def get_known_face_names(self):
         return self.known_face_names
