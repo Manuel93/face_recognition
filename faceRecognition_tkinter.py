@@ -19,6 +19,9 @@ from collections import Counter
 
 import string
 
+from sklearn.cluster import DBSCAN
+from imutils import build_montages
+
 class FileManagement(object):
 
     def get_file_list(self,path):
@@ -277,7 +280,8 @@ class Application(Frame):
 
                 self.face_rcg.encode([file[1] for file in self.file_list])
 
-                self.face_clusters = self.face_rcg.cluster_faces()
+                self.face_clusters = self.face_rcg.cluster_faces_dbscan()
+                #self.face_clusters = self.face_rcg.cluster_faces()
                 self.face_ids,self.face_names,self.face_cluster_id = self.face_rcg.get_processed_clusters(self.face_clusters)
 
                 self.status.set("Faces recognized. Click 'Next'")
@@ -532,13 +536,13 @@ class FaceRecognition(object):
         return 
 
     def build_cluster(self,ids,encodings,names,face_cluster_id):
-        """Recursive function to build clusters of same faces
+        """Recursive function to build clusters of same faces based on compare_faces method of face_recognition
 
         Parameters:
         array ids: ids of faces
         array encodings: encodings of faces
         array names: names of faces 
-        array face_cluster_id: if of the cluster the face belongs to 
+        array face_cluster_id: id of the cluster the face belongs to 
 
         Returns:
         array: recognized cluster
@@ -594,12 +598,13 @@ class FaceRecognition(object):
         return clusters
 
     def cluster_faces(self):
-        """Loops through all face encodings and returns clusters of unknown same faces
+        """Loops through all face encodings and returns clusters of unknown same faces. 
+        Uses the compare_faces method of face_recognition to find faces which are similar
 
         Parameters:
         
         Returns:
-        array: array of names of same face
+        array: array of clusters
 
         """
 
@@ -612,41 +617,52 @@ class FaceRecognition(object):
 
         clusters = self.build_cluster(face_ids,face_encodings,face_names,face_cluster_id)
 
+        return clusters
 
-        """for count,face_encoding in enumerate(self.known_face_encodings):
+    def cluster_faces_dbscan(self):
+        """Returns clusters of same faces. Uses the DBSCAN algorithm to cluster faces. 
 
-            if "Unknown" not in self.known_face_names[count]:
-                continue
+        Parameters:
 
-            else:
+        Returns:
+        array: array of clusters 
 
-                #known = [True for face_cluster in faces if self.known_face_names[count] in face_cluster ]
-                #if True in known:
-                #    continue
-
-                # See if the face is a match for the known face(s)
-                matches = fr.compare_faces(self.known_face_encodings[count+1:], face_encoding)
-
-                if True in matches:
-                    # find the indexes of all matched faces 
-                    matchedIdxs = [count+1+i for (i, b) in enumerate(matches) if b]
-                    face_names = []
-                    face_names.append(self.known_face_names[count])
-                    face_names.extend([self.known_face_names[i] for i in matchedIdxs])
-                    faces.append(face_names)
-                else:
-                    faces.append([self.known_face_names[count]])
-
-                # Or instead, use the known face with the smallest distance to the new face
-                #face_distances = fr.face_distance(self.known_face_encodings, face_encoding)
-                #best_match_index = np.argmin(face_distances)
-                #if matches[best_match_index]:
-                #    name = self.known_face_names[best_match_index]
-                #else:
-                #    name = "Unknown_" + str(round(random.random()*1000000000000000)) 
         """
 
+        clusters = []
+
+        face_encodings = self.known_face_encodings.copy()
+        face_names = self.known_face_names.copy()
+        face_ids = self.known_face_ids.copy()
+        face_cluster_id = self.face_cluster_id.copy()
+
+        clt = DBSCAN(eps=0.56,metric='euclidean')
+        clt.fit(face_encodings)
+
+        labelIDs = np.unique(clt.labels_)
+        numUniqueFaces = len(np.where(labelIDs > -1)[0])
+
+        for labelID in labelIDs:
+            # find all indexes into the `data` array that belong to the
+	        # current label ID
+            idxs = np.where(clt.labels_ == labelID)[0]
+
+            face_ids_cluster = []
+            face_encodings_cluster = []
+            face_names_cluster = []
+            face_cluster_id_cluster = []
+
+            for i in idxs:
+                face_ids_cluster.append(face_ids[i])
+                face_encodings_cluster.append(face_encodings[i])
+                face_names_cluster.append(face_names[i])
+                face_cluster_id_cluster.append(face_cluster_id[i])
+
+            clusters.append([face_ids_cluster,face_encodings_cluster,face_names_cluster,face_cluster_id_cluster])
+
+
         return clusters
+        
 
     def get_processed_clusters(self,clusters):
         """Assign cluster IDs to unknown faces. Generate new cluster ID for unknown clusters 
