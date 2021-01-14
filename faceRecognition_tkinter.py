@@ -170,58 +170,25 @@ class Application(Frame):
     
 
     def next(self):
+        """Combination of methods encode and cluster. This method first encodes the faces and then clusters them. 
+        Finally one face of every cluster is shown to name the face. 
 
-        """for i in range(len(self.face_names)):
-            if "Unknown" in self.face_names[i] and self.person_name.get()=="":
-                self.status.set("Please type in the name of " + self.face_names[i] + " and click 'Next'")
-                break
-            elif "Unknown" in self.face_names[i] and self.person_name.get()!="":
-                self.face_rcg.change_face_name(self.face_names[i],self.person_name.get())
-                self.face_names[i] = self.person_name.get()
-                self.person_name.set("")
-                self.status.set("Click 'Next'")
-                break"""
+        """
+
         for i in range(len(self.face_names)):
-            """if "Unknown" in self.face_names[i][0] and self.person_name.get()=="":
-                self.status.set("Please type in the name of " + self.face_names[i][0] + " and click 'Next'")
-                break"""
+
             if self.face_names[i][0] == "":
 
-
-                """if i > 0:
-                    for k,face in enumerate(self.face_names[i-1]):
-                        self.face_rcg.change_face_name(self.face_names[i-1][k],self.person_name.get())
-                        self.face_names[i-1][k] = self.person_name.get()
-                
-                self.person_name.set("")"""
-
-                # show image with faces
-
-
-                """size = (1000, 1000)
-                try:
-                    self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])])
-                    self.im.thumbnail(size, Image.ANTIALIAS)
-                    self.iterator += 1
-                except IOError:
-                    print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[i][0])]))
-            
-                self.img2 = ImageTk.PhotoImage(self.im) 
-
-                self.canvas.configure(image=self.img2)
-                self.canvas.image = self.img2"""
-
                 display_size_image = 600
-                display_scale_image = display_size_image / 2000
+                display_scale_image = display_size_image / 1000
 
                 img_full = cv2.imread(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_ids().index(self.face_ids[i][0])]) #, cv2.IMREAD_UNCHANGED)
-                scale_percent = display_scale_image*2000/img_full.shape[1] # percent of original size
+                scale_percent = display_scale_image*1000/img_full.shape[1] # percent of original size
                 width = int(img_full.shape[1] * scale_percent )
                 height = int(img_full.shape[0] * scale_percent )
                 dim = (width, height)
                 # resize image
                 img_bgr = cv2.resize(img_full, dim)
-
 
                 (top, right, bottom, left) = self.face_rcg.get_known_face_locations()[self.face_rcg.get_known_face_ids().index(self.face_ids[i][0])]
 
@@ -251,28 +218,8 @@ class Application(Frame):
 
                 self.status.set("Please type in the name of " + self.face_ids[i][0] + " and click 'Save' and 'Next'")
                 break
-            """else:
-                # face is already known. Change the name 'Unknown......' to the real name
-                names = [face for face in self.face_names[i] if "Unknown" not in face]
-                names = sorted(names, key=names.count,reverse=True)
-                for k,face in enumerate(self.face_names[i]):
-                    self.face_rcg.change_face_name(self.face_ids[i][k],names[0])
-                    self.face_names[i][k] = names[0]"""
 
         else:
-
-            # first delete old image
-            """if self.file_path != "":
-                try:
-                    os.remove(self.file_path)
-                except Exception as e:
-                    print("Could not delete old file. Error: {0}".format(e))
-
-            print("file list: {}".format(self.file_list))
-            print("file: {}".format(self.file_list[self.iterator][1]))"""
-
-            # encode and get face names
-            #self.face_names, self.file_path = self.face_rcg.encode(self.file_list[self.iterator][1])
 
             if self.new_file_list:
 
@@ -286,45 +233,42 @@ class Application(Frame):
 
                 self.status.set("Faces recognized. Click 'Next'")
 
-            else:
+            """else:
 
                 self.face_rcg.write_images_with_names("/home/manuel/Pictures/test_face_recognition/known/")
-                self.status.set("Finished. Type path and click 'Get file list' to start new.")
-
-            #print(self.face_names)
-
-            # show image with faces
-            """size = (1000, 1000)
-            try:
-                self.im = Image.open(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[0][0])])
-                self.im.thumbnail(size, Image.ANTIALIAS)
-                self.iterator += 1
-            except IOError:
-                print("cannot create thumbnail for {0}".format(self.face_rcg.get_known_face_files()[self.face_rcg.get_known_face_names().index(self.face_names[0][0])]))
-        
-            self.img2 = ImageTk.PhotoImage(self.im) 
-
-            self.canvas.configure(image=self.img2)
-            self.canvas.image = self.img2"""
+                self.status.set("Finished. Type path and click 'Get file list' to start new.")"""
 
 
-            
+    def encode(self):
+        """Encodes the images of the file list
+
+        """
+
+        if self.new_file_list:
+
+            self.new_file_list = False
+
+            self.face_rcg.encode([file[1] for file in self.file_list])
+
+            self.status.set("Faces encoded")
+
+    def cluster(self):
+        """Clusters the images which were already encoded. Then one face of every cluster is shown to name the face. 
+
+        """
+
+        self.face_clusters = self.face_rcg.cluster_faces_dbscan()
+        #self.face_clusters = self.face_rcg.cluster_faces()
+        self.face_ids,self.face_names,self.face_cluster_id = self.face_rcg.get_processed_clusters(self.face_clusters)
+
+        self.status.set("Faces clustered. Click 'Next'")
 
 
-        # show the next image
-        """size = (1000, 1000)
-        try:
-            self.im = Image.open(self.file_list[self.iterator][1])
-            self.im.thumbnail(size, Image.ANTIALIAS)
-            self.iterator += 1
-        except IOError:
-            print("cannot create thumbnail for {0}".format(self.file_list[self.iterator]))
+    def write_images(self):
 
-    
-        self.img2 = ImageTk.PhotoImage(self.im) 
+        self.face_rcg.write_images_with_all_names("/home/manuel/Pictures/test_face_recognition/known/")
+        self.status.set("Finished. Type path and click 'Get file list' to start new.")
 
-        self.canvas.configure(image=self.img2)
-        self.canvas.image = self.img2"""
 
     def save(self):
         for i in range(len(self.face_names)):
@@ -394,7 +338,25 @@ class Application(Frame):
         self.next_button_text = StringVar()
         self.next_button_text.set("Next")
         self.next_button = Button(textvariable=self.next_button_text,command=self.next,width=40)
-        self.next_button.grid(row=16,column=0,sticky=W,columnspan=2)
+        self.next_button.grid(row=14,column=0,sticky=W,columnspan=2)
+
+        # encode button
+        self.encode_button_text = StringVar()
+        self.encode_button_text.set("Encode")
+        self.encode_button = Button(textvariable=self.encode_button_text,command=self.encode,width=40)
+        self.encode_button.grid(row=15,column=0,sticky=W,columnspan=2)
+
+        # cluster button
+        self.cluster_button_text = StringVar()
+        self.cluster_button_text.set("Cluster")
+        self.cluster_button = Button(textvariable=self.cluster_button_text,command=self.cluster,width=40)
+        self.cluster_button.grid(row=16,column=0,sticky=W,columnspan=2)
+
+        # write images button
+        self.write_images_button_text = StringVar()
+        self.write_images_button_text.set("Write images")
+        self.write_images_button = Button(textvariable=self.write_images_button_text,command=self.write_images,width=40)
+        self.write_images_button.grid(row=17,column=0,sticky=W,columnspan=2)
 
         # save name button
         self.save_button_text = StringVar()
@@ -464,7 +426,7 @@ class FaceRecognition(object):
             #small_frame = cv2.resize(img,(0,0),fx=0.25, fy=0.25)
             #rgb_small_frame = small_frame[:, :, ::-1]
 
-            scale_percent = 2000/img_full.shape[1] # percent of original size
+            scale_percent = 1000/img_full.shape[1] # percent of original size
             width = int(img_full.shape[1] * scale_percent )
             height = int(img_full.shape[0] * scale_percent )
             dim = (width, height)
@@ -478,25 +440,6 @@ class FaceRecognition(object):
             face_encodings = fr.face_encodings(img,face_locations)
 
             for face_encoding in face_encodings:
-
-                # See if the face is a match for the known face(s)
-                #matches = fr.compare_faces(self.known_face_encodings, face_encoding)
-                #matches = []
-
-                # If a match was found in known_face_encodings, just use the first one.
-                """if True in matches:
-                    first_match_index = matches.index(True)
-                    name = self.known_face_names[first_match_index]
-                else:
-                    name = "Unknown_" + str(round(random.random()*1000000000000000)) """
-
-                # Or instead, use the known face with the smallest distance to the new face
-                #face_distances = fr.face_distance(self.known_face_encodings, face_encoding)
-                #best_match_index = np.argmin(face_distances)
-                #if matches[best_match_index]:
-                #    name = self.known_face_names[best_match_index]
-                #else:
-                #    name = "Unknown_" + str(round(random.random()*1000000000000000)) 
 
                 name = ""
                 face_id = self.id_generator()
@@ -513,26 +456,7 @@ class FaceRecognition(object):
 
             print("face names: {0}".format(face_names))
 
-            """print("face locations: {0}".format(face_locations))
-            print("face names: {0}".format(face_names))
 
-            for (top, right, bottom, left), name in zip(face_locations, face_names):
-
-                print(name)
-
-                # Draw a box around the face
-                cv2.rectangle(img_bgr, (left, top), (right, bottom), (255, 255, 255), 2)
-
-                # Draw a label with a name below the face
-                cv2.rectangle(img_bgr, (left, bottom), (right+150, bottom+35), (255, 255, 255), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(img_bgr, name, (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)
-            
-            path_folder = path[:-len(path.split('/')[-1])]
-            file_path = path_folder + "image_faces_" + str(round(random.random()*1000000000000000)) + ".jpg"
-            cv2.imwrite(file_path,img_bgr)
-
-        return face_names, file_path"""
         return 
 
     def build_cluster(self,ids,encodings,names,face_cluster_id):
@@ -684,15 +608,6 @@ class FaceRecognition(object):
         for i in range(len(face_ids)):
             face_cluster_id_cache = sorted(face_cluster_id[i],reverse=True)
             if "" in face_cluster_id_cache and face_cluster_id_cache[0]:
-                # face cluster is already known. Assign face cluster id 
-                # first sort clusters after number of occurences
-                #cluster_ids_sorted = [cluster_id for cluster_id in face_cluster_id[i] if cluster_id]
-                #cluster_ids_sorted = sorted(cluster_ids_sorted, key=cluster_ids_sorted.count,reverse=True)
-
-                #cluster_ids_sorted = [cluster[3] for cluster in clusters if cluster[3]]
-                #cluster_names_sorted = [cluster[2] for cluster in clusters if cluster[3]]
-                #cluster_ids_sorted = sorted(cluster_ids_sorted, key=cluster_ids_sorted.count,reverse=True)
-                #cluster_names_sorted = sorted(cluster_names_sorted, key=cluster_ids_sorted.count,reverse=True)
 
                 cluster_ids_sorted = [cluster_id for cluster_id in face_cluster_id[i] if cluster_id]
                 cluster_names_sorted = [name for name in face_names[i] if name]
@@ -722,7 +637,7 @@ class FaceRecognition(object):
 
 
     def write_images_with_names(self,write_path):
-        """Write all known images
+        """Write all known images. Every image contains just one name. 
 
         Parameters:
         string write_path: path to write the images to
@@ -744,7 +659,7 @@ class FaceRecognition(object):
             #small_frame = cv2.resize(img,(0,0),fx=0.25, fy=0.25)
             #rgb_small_frame = small_frame[:, :, ::-1]
 
-            scale_percent = 2000/img_full.shape[1] # percent of original size
+            scale_percent = 1000/img_full.shape[1] # percent of original size
             width = int(img_full.shape[1] * scale_percent )
             height = int(img_full.shape[0] * scale_percent )
             dim = (width, height)
@@ -752,17 +667,6 @@ class FaceRecognition(object):
             # resize image
             img_bgr = cv2.resize(img_full, dim)
             img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-
-
-            """for (top, right, bottom, left), name in zip(face_locations, face_names):
-
-                # Draw a box around the face
-                cv2.rectangle(img_bgr, (left, top), (right, bottom), (255, 255, 255), 2)
-
-                # Draw a label with a name below the face
-                cv2.rectangle(img_bgr, (left, bottom), (right+150, bottom+35), (255, 255, 255), cv2.FILLED)
-                font = cv2.FONT_HERSHEY_DUPLEX
-                cv2.putText(img_bgr, name, (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)"""
 
             (top,right,bottom,left) = face_locations[i]
             name = face_names[i]
@@ -778,6 +682,60 @@ class FaceRecognition(object):
             #path_folder = path[:-len(path.split('/')[-1])]
             file_name = path[-len(path.split('/')[-1]):-4]
             file_path = write_path + file_name + "_" + name + "_" + str(round(random.random()*1000000000000000)) + ".jpg"
+            cv2.imwrite(file_path,img_bgr)
+
+        return 
+
+    def write_images_with_all_names(self,write_path):
+        """Write all known images. Every image contains all names in it. 
+
+        Parameters:
+        string write_path: path to write the images to
+
+        Returns:
+
+
+        """
+
+        paths = self.known_face_files
+        face_locations = self.known_face_locations
+        face_encodings = self.known_face_encodings
+        face_names = self.known_face_names
+        face_ids = self.known_face_ids
+
+        uniquePaths = np.unique(paths)
+        np_paths = np.array(paths)
+
+        for path in uniquePaths:
+
+            idxs = np.where(np_paths == path)[0]
+
+            img_full = cv2.imread(path) 
+
+            scale_percent = 1000/img_full.shape[1] # percent of original size
+            width = int(img_full.shape[1] * scale_percent )
+            height = int(img_full.shape[0] * scale_percent )
+            dim = (width, height)
+
+            # resize image
+            img_bgr = cv2.resize(img_full, dim)
+            img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+            for i in idxs:
+                (top,right,bottom,left) = face_locations[i]
+                name = face_names[i]
+
+                # Draw a box around the face
+                cv2.rectangle(img_bgr, (left, top), (right, bottom), (255, 255, 255), 2)
+
+                # Draw a label with a name below the face
+                cv2.rectangle(img_bgr, (left, bottom), (right+150, bottom+35), (255, 255, 255), cv2.FILLED)
+                font = cv2.FONT_HERSHEY_DUPLEX
+                cv2.putText(img_bgr, name, (left + 6, bottom + 30), font, 0.8, (0, 0, 0), 2)
+            
+            #path_folder = path[:-len(path.split('/')[-1])]
+            file_name = path[-len(path.split('/')[-1]):-4]
+            file_path = write_path + file_name + "_known_faces" + ".jpg"
             cv2.imwrite(file_path,img_bgr)
 
         return 
